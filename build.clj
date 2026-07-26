@@ -147,8 +147,41 @@
 
 (defn- bin-header
   [jvm-opts]
-  (format "#!/bin/sh\n\nexec java %s -jar $0 \"$@\"\n\n\n"
-          (str/join \space jvm-opts)))
+  (str "#!/bin/sh\n"
+       "\n"
+       "find_java() {\n"
+       "    if [ -n \"$JAVA_HOME\" ] && [ -x \"$JAVA_HOME/bin/java\" ]; then\n"
+       "        echo \"$JAVA_HOME/bin/java\"\n"
+       "        return 0\n"
+       "    fi\n"
+       "    if [ -x \"$HOME/.sdkman/candidates/java/current/bin/java\" ]; then\n"
+       "        echo \"$HOME/.sdkman/candidates/java/current/bin/java\"\n"
+       "        return 0\n"
+       "    fi\n"
+       "    if command -v java >/dev/null 2>&1; then\n"
+       "        echo \"java\"\n"
+       "        return 0\n"
+       "    fi\n"
+       "    for dir in \\\n"
+       "        /usr/lib/jvm/*/bin/java \\\n"
+       "        /opt/*/bin/java \\\n"
+       "        \"$HOME/.local/share/JetBrains/Toolbox/apps\"/*/jbr/bin/java \\\n"
+       "        \"$HOME/.minecraft/runtime\"/*/bin/java \\\n"
+       "        \"$HOME/.local/share/minecraft/runtime\"/*/bin/java \\\n"
+       "        \"$HOME/.var/app\"/*/data/java/bin/java; do\n"
+       "        if [ -x \"$dir\" ]; then\n"
+       "            echo \"$dir\"\n"
+       "            return 0\n"
+       "        fi\n"
+       "    done\n"
+       "    echo \"ERROR: Java not found. Install Java 21+ or set JAVA_HOME.\" >&2\n"
+       "    return 1\n"
+       "}\n"
+       "\n"
+       "JAVA_BIN=\"$(find_java)\" || exit 1\n"
+       "exec \"$JAVA_BIN\" "
+       (str/join " " jvm-opts)
+       " -jar \"$0\" \"$@\"\n"))
 
 (defn build-bin
   [{:keys [uber-file project-name main description version copyright jvm-opt jre-path header]}]
