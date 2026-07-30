@@ -279,7 +279,11 @@
         bin-file (build-bin settings)
 
         _ (print-build-stage "Building exe...")
-        exe-file (build-exe settings)]
+        exe-file (try
+                   (build-exe settings)
+                   (catch Exception e
+                     (println "  (skipped — launch4j not available)")
+                     nil))]
 
     {:bin-file bin-file
      :exe-file exe-file}))
